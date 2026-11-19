@@ -1,0 +1,32 @@
+m3uchoder - version 1
+--
+This program takes a m3u playlist and inserts breaks using a special proprietary algorithm™ (highly secret)
+
+It works as follows:
+After 15 minutes, or when there are less than 15 minutes remaining in the album and 10 minutes have passed since the last break, insert a regular break (referred internally as CHODE).
+Upon reaching the last file in an album, if the remaining time between the end of the album and the last break is less than 10 minutes, insert a special break (referred internaly as UCHODE) otherwise, insert a regular break.
+
+Albums changes are detected by checking if the name of the last folder in a file's path is different from the prior folder name, unless both the current and prior folders start with "D_I_".
+Note that the current method of determining this will crash if the file path does not contain at least two folders (relative to the playlist)
+
+Breaks
+--
+Breaks are defined at the top of m3uchoder.c
+Using the default options:
+regular breaks should be numbered in the format "Chode FM\CHODE FM <number>.mp3"
+special breaks are defined in an array, they should be in the same folder as regular breaks.
+
+remember to change the corresponding LEN_ variable when changing any of the strings, these should just be the number of characters in the string (excluding the null terminator)
+
+Compiling
+--
+On unix, you will need FFmpeg's libavformat and libavutil as well as their associated headers, to compile simply run:
+cc -lavformat -lavcodec m3uchoder.c -o m3uchoder
+
+A Visual Studio project is provided for compiling on Windows, also provided are getline.c getdelim.c and strndup.c from NetBSD's libnbcompat, as Windows does not provide these functions.
+You will need a build of ffmpeg with the development headers and library files, they should be put in the ffmpeg/ directory, the required files are detailed in ffmpeg/whatshouldbehere.txt
+
+License
+--
+m3uchoder.c is licensed under the GNU GPLv3
+libnbcompat, strdup.c, getline.c and getdelim.c are from the NetBSD project, and are licensed under the 2 clause BSD license

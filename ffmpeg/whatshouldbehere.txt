@@ -1,0 +1,15 @@
+you should have these directories here
+lib/
+include/
+
+these files should be present
+lib/avformat.lib
+lib/avutil.lib
+include/libavformat/libavformat.h
+include/libavutil/log.h
+
+you should also have these libraries in your working directory
+avformat-<version>.dll
+avcodec-<version>.dll
+avutil-<version>.dll
+swresample-<version>.dll
