@@ -34,7 +34,7 @@
 #define LEN_CHODE_PFIX 9
 #define CHODE_EXT "mp3"
 #define LEN_CHODE_EXT 3
-#define MAX_CHODE  24
+#define MAX_CHODE  25
 
 const char *UCHODE_LIST[] = {
 	"CHODE FM (G-Man).mp3",
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 	double m;
 
 	av_log_set_level(AV_LOG_FATAL);
-	pl = fopen(argv[1], "r");
+	pl = fopen(argv[1], "rb");
 	if (pl == NULL) {
 		fprintf(stderr, "Error opening %s\n", argv[1]);
 		return 1;
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 	}
 
 
-	o_pl = fopen(fn2, "w+");
+	o_pl = fopen(fn2, "wb+");
 	free(path);
 	free(fn2);
 	free(fn);
@@ -120,9 +120,24 @@ int main(int argc, char** argv)
 	line = NULL;
 	getline(&line, &line_l, pl);
 	if (strcmp(line, "#EXTM3U\n") != 0) {
+#ifdef _WIN32 || _WIN64
+		if (strcmp(line, "#EXTM3U\r\n") == 0){
+			/* This file is encoded with CR LF and must be re-opened */
+			fclose(pl);
+			pl = fopen(argv[1], "r");
+			if (pl == NULL) {
+				fprintf(stderr, "Error opening %s\n", argv[1]);
+				return 1;
+			}
+			while (getc(pl) != '\n') {
+			}
+			goto file_ok;
+		}
+#endif
 		fprintf(stderr, "Not a M3U playlist\n");
 		return 1;
 	}
+file_ok:
 	fprintf(o_pl, "%s",line);
 
 	free(line);
@@ -169,7 +184,6 @@ void read_album(FILE *pl, FILE *o_pl) {
 		ungetc(c, pl);
 
 		fgetpos(pl, &pos);
-
 		getline(&line, &line_l, pl);
 		getline(&line2, &line2_l, pl);
 
@@ -190,7 +204,7 @@ void read_album(FILE *pl, FILE *o_pl) {
 			free(line);
 			break;
 		}
-		fprintf(o_pl, "%s\n%s\n\n", line, line2);
+		fprintf(o_pl, "%s\n%s\n", line, line2);
 		l_len = read_len(line2);
 		if (l_len < 0)
 			fprintf(stderr, "Failed to open %s\n", line2);
@@ -233,34 +247,39 @@ void read_album(FILE *pl, FILE *o_pl) {
 long long int look_ahead(FILE *pl) 
 {
 	long long int r_len = 0, l_len;
-	size_t line_l;
-	char* line, *s_p_album;
+	size_t line_l, line2_l;
+	char *line, *line2, *s_p_album;
 	fpos_t pos;
 
 	s_p_album = strdup(p_album);
 	fgetpos(pl, &pos);
-
 	while (!feof(pl)) {
 		line_l = 0;
 		line = NULL;
-		getline(&line, &line_l, pl);
+		line2_l = 0;
+		line2 = NULL;
 
-		if (feof(pl) || line[0] == '#' || line[0] == '\n') {
-			free(line);
+		char c = (char)fgetc(pl);
+		if (c == '\n' || c == EOF)
 			continue;
-		}
+		ungetc(c, pl);
+
+		getline(&line, &line_l, pl);
+		getline(&line2, &line2_l, pl);
 
 		line[strlen(line) - 1] = '\0';
-		if (is_sep(line))
+		line2[strlen(line2) - 1] = '\0';
+
+		if (is_sep(line2))
 			break;
-		l_len = read_len(line);
+		l_len = read_len(line2);
 		if (l_len < 0)
 			return -1;
 		r_len += l_len;
 
 		free(line);
+		free(line2);
 	}
-
 	fsetpos(pl, &pos);
 
 	free(p_album);
@@ -374,6 +393,6 @@ void ins_chode(FILE *o_pl, bool uchode) {
 	}
 
 	/* m3u spec says the 0 should be the length of the file, but Windows Media Player seems to ignore that */
-	fprintf(o_pl, "#EXTINF:0,%s\n%s\n\n", insert+LEN_CHODE_PATH, insert);
+	fprintf(o_pl, "#EXTINF:0,%s\n%s\n", insert+LEN_CHODE_PATH, insert);
 	free(insert);
 }
