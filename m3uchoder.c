@@ -69,15 +69,45 @@ int main(int argc, char** argv)
 
 	FILE *pl, *o_pl;
 	size_t line_l;
-	char *line;
+	char *line, *fn, *fn2, *prev, *path;
 	double m;
 
 	av_log_set_level(AV_LOG_FATAL);
 	pl = fopen(argv[1], "r");
 	if (pl == NULL) {
 		fprintf(stderr, "Error opening %s\n", argv[1]);
+		return 1;
 	}
-	o_pl = fopen("Chode3FM2.m3u", "w+");
+
+	prev = argv[1];
+	while ((fn = strchr(prev,'\\')) != NULL) {
+		prev = fn+1;
+	}
+
+	fn = strdup(prev);
+	path = strdup(argv[1]);
+	path[strlen(path) - strlen(fn)] = '\0';
+
+	fn2 = (char*)malloc(strlen(path) + strlen(fn) + 1 + 3);
+	strcpy(fn2, path);
+
+	prev = strchr(fn, '.');
+	if (prev != NULL) {
+		*prev = '\0';
+		strcat(fn2, fn);
+		strcat(fn2, "_CH.");
+		strcat(fn2, prev + 1);
+	}
+	else {
+		strcat(fn2, fn);
+		fn2 = strcat(fn2, "_CH");
+	}
+
+
+	o_pl = fopen(fn2, "w+");
+	free(path);
+	free(fn2);
+	free(fn);
 
 	a_elapsed = 0;
 	a_remains = 0;
@@ -108,7 +138,9 @@ int main(int argc, char** argv)
 	printf("Inserted CHODES:%d UCHODES:%d\n", t_chode, t_uchode);
 	fclose(pl);
 	fclose(o_pl);
+#ifdef _WIN32 || _WIN64
 	system("pause");
+#endif
 	return 0;
 }
 
